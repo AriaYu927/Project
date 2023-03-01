@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>视频实时监控页面</title>
+    <script type="text/javascript" src="js/jquery-3.6.0.min.js"></script>
+    <script src="js/vue.js" type="text/javascript"></script>
+    <!-- 引入样式 -->
+    <link href="https://unpkg.com/element-ui/lib/theme-chalk/index.css" rel="stylesheet">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="js/url.js"></script>
+    <script src="js/ble.js"></script>
+</head>
+<body @onload="run2()">
+<div id="data_page">
+    <el-header style="height: 40px">
+        <div style="left: 600px;position: absolute; font-size: 22px;font-weight: bolder; font-family: 宋体">
+            无人机巡检综合平台数据管理分系统
+        </div>
+    </el-header>
+    <el-container>
+        <el-aside>
+            <div id="show" style="font-weight: bold;text-align: center;
+                 border: #166bac 1px solid; border-radius: 25px;margin-bottom: 10%; margin-left: 5%;margin-top: 10%"></div>
+            <div style="border: #166bac 1px solid; border-radius: 25px;margin-left: 5%">
+                <div style="margin-left: 7%;font-size: 13px;">飞行加速度：({{ax1}}, {{ay1}}, {{az1}})</div>
+                <div style="margin-left: 7%;font-size: 13px">飞行角速度：({{wx1}}, {{wy1}}, {{wz1}})</div>
+                <div style="margin-left: 7%;font-size: 13px">飞行角度：({{R}},{{P}},{{Y}})</div>
+                <div style="font-size: 13px;margin-left: 7%">巡检编号：{{inspNum}}</div>
+                <div style="margin-left: 7%;font-size: 13px">路线编号：{{value}}</div>
+                <div style="margin-left: 7%;font-size: 13px">巡检无人机编号：{{uvaNum}}</div>
+            </div>
+            <br/>
+            <el-select  v-model="value" size="small" placeholder="请选择其他路段" @input="clearCanvas()" style="margin-left: 18%">
+                <el-option
+                        v-for="item in options"
+                        :key="item.value"
+                        :label="item.labelop"
+                        :value="item.value">
+                </el-option>
+            </el-select>
+            <br/>
+            <el-button plain size="small"  @click="getMedia();selectInsp()" onclick="StartBLE()" style="margin-left: 23%">开始巡检</el-button>
+            <el-button plain size="small" @click="stopMedia();clearCanvas();insertInsp();" onclick="endBle()">结束巡检</el-button><br/>
+            <el-button plain size="small" id="snap" @click="takePhoto()" style="margin-left: 23%">路段拍照</el-button>
+            <el-button plain size="small" @click="openTables()">查看报表</el-button><br/>
+            <el-button size="small" @click="open();" style="margin-left: 23%">报告预警</el-button>
+            <el-button type="info" size="small" @click="goBack()" style="background-color: #166bac;">退出登录</el-button>
+
+        </el-aside>
+            <el-main style="height: 632px">
+                <span>
+                    <video id="video" width="440px" height="580px" autoplay="autoplay"></video>
+                </span>
+                &nbsp;&nbsp;&nbsp;
+<!--                <span style="float:none;margin-top: 30px;width: 1px;height: 200px; background: darkgray;">-->
+
+<!--                </span>-->
+<!--                &nbsp;&nbsp;&nbsp;-->
+                <span>
+                    <canvas id="canvas" width="440px" height="580px"></canvas>
+                </span>
+            </el-main>
+<!--            <el-footer style="height: 75px">-->
+<!--                -->
+<!--            </el-footer>-->
+
+
+    </el-container>
+
+
+<!--            <el-container style="height: 670px; border: 1px solid #eee">-->
+<!--                &lt;!&ndash;    视频直播窗口&ndash;&gt;-->
+<!--                <el-container>-->
+<!--                    <el-main style="height: 550px">-->
+<!--                        &lt;!&ndash;                <iframe src="Demo/paizhao.html" style="height: 520px; width: 820px"></iframe>&ndash;&gt;-->
+<!--                        &lt;!&ndash;                <div>视频直播窗口</div>&ndash;&gt;-->
+<!--                        &lt;!&ndash;                <input type="button" title="开启摄像头" value="开启摄像头" onclick="getMedia()" />&ndash;&gt;-->
+<!--                        <table border="1" cellspacing="0" cellpadding="0">-->
+<!--                            <tr>-->
+<!--                                <td>-->
+<!--                                    <video id="video" width="440px" height="500px" autoplay="autoplay"></video>-->
+<!--                                </td>-->
+<!--                                <td>-->
+<!--                                    <canvas id="canvas" width="440px" height="500px"></canvas>-->
+<!--                                </td>-->
+<!--                            </tr>-->
+<!--                        </table>-->
+
+<!--                        &lt;!&ndash;                <button id="snap" onclick="takePhoto()">拍照</button>&ndash;&gt;-->
+<!--                    </el-main>-->
+
+<!--                    &lt;!&ndash;    线路和无人机编号获取&ndash;&gt;-->
+<!--                    <el-header style="text-align: left; font-size: 17px" height="100px">-->
+<!--                        <span>巡检编号：{{inspNum}}</span>-->
+<!--                        <span>路线编号：{{value}}</span><br/>-->
+<!--                        <span>巡检无人机编号：{{uvaNum}}</span>-->
+<!--                    </el-header>-->
+<!--                </el-container>-->
+
+<!--                &lt;!&ndash;    飞行数据的显示&ndash;&gt;-->
+<!--                <el-aside width="300px" style="background-color: rgb(238, 241, 246)">-->
+<!--                    <el-container width="500px">-->
+<!--                        <el-header style="height: 270px" width="110px">-->
+<!--                            &lt;!&ndash;                时间动态显示&ndash;&gt;-->
+<!--                            <div id="show" style="font-weight: bold; margin-left: 10%"></div>-->
+<!--                            &lt;!&ndash;                    <div>加速度：{{ax}}</div>&ndash;&gt;-->
+<!--                            &lt;!&ndash;                    <div>角速度：{{wx}}</div>&ndash;&gt;-->
+<!--                            &lt;!&ndash;                    <div>角度：({{Roll}},{{Pitch}},{{Yaw}})</div>&ndash;&gt;-->
+<!--                            <span>飞行速度：</span>-->
+<!--                            <span id="speed"></span><br/>-->
+<!--                            <span>飞行高度：</span>-->
+<!--                            <span id="height"></span>-->
+<!--                            &lt;!&ndash;                    <div>经度：{{longitude}}</div>&ndash;&gt;-->
+<!--                            &lt;!&ndash;                    <div>纬度：{{latitude}}</div>&ndash;&gt;-->
+<!--                        </el-header>-->
+
+<!--                        <el-main>-->
+<!--                            <br/>-->
+<!--                            <el-select v-model="value" style="margin-left: 8%" placeholder="请选择其他路段"-->
+<!--                                       @input="clearCanvas()">-->
+<!--                                <el-option-->
+<!--                                        v-for="item in options"-->
+<!--                                        :key="item.value"-->
+<!--                                        :label="item.labelop"-->
+<!--                                        :value="item.value">-->
+<!--                                </el-option>-->
+<!--                            </el-select>-->
+<!--                            <br/><br/>-->
+<!--                            <el-button style="margin-left: 9%" plain type="success" @click="getMedia();selectInsp();">开始巡检</el-button>-->
+<!--                            <el-button plain type="danger" @click="stopMedia();clearCanvas();insertInsp()">结束巡检</el-button>-->
+<!--                            <br/><br/>-->
+<!--                            <el-button plain style="margin-left: 30%" id="snap" @click="takePhoto()">路段拍照</el-button>-->
+<!--                            <br/><br/>-->
+<!--                            <el-button plain style="margin-left: 30%" @click="openTables()">查看报表</el-button>-->
+<!--                            <br/><br/>-->
+<!--                            <el-button type="danger" style="margin-left: 30%" @click="open();">报告预警</el-button>-->
+<!--                            <br/><br/>-->
+<!--                            <el-button type="info" style="margin-left: 34%" size="mini" @click="goBack()">退出登录</el-button>-->
+
+<!--                        </el-main>-->
+<!--                    </el-container>-->
+<!--                </el-aside>-->
+<!--            </el-container>-->
+</div>
+
+<style>
+    .el-main{
+        background-color: #16131c;
+        /*background-image: url("image/back1.jpg");*/
+        background-size: cover;
+
+    }
+    .el-header {
+        /*background-image: linear-gradient(#4cb1ff, #add5ff);*/
+        background-color: #0e6eb7;
+        color: #ffffff;
+        line-height: 38px;
+    }
+
+    .el-aside {
+        background-color: #16131c;
+        color: #cbc8cb;
+        line-height: 40px;
+        /*border-left: 1px solid #878787;*/
+    }
+    .el-footer {
+        /*background-image: linear-gradient(#add5ff, #4cb1ff);*/
+        background-color: #16131c;
+        color: #ffffff;
+        line-height: 80px;
+    }
+    .el-button{
+        background-color: #16131c;
+        color: #cbc8cb;
+        border: 1px solid #166bac;
+    }
+</style>
+
+<script>
+
+    function Time() {
+        var time = new Date();//获取系统当前时间
+        var year = time.getFullYear();
+        var month = time.getMonth() + 1;
+        var date = time.getDate();//系统时间月份中的日
+        var hour = time.getHours();
+        var minutes = time.getMinutes();
+        var seconds = time.getSeconds();
+        var speed = (Math.random() + 4).toFixed(2);
+        var height = (Math.random() + 12).toFixed(2);
+
+        // 如果数字小于10，在前面加0
+        if (month < 10) {
+            month = "0" + month;
+        }
+        if (date < 10) {
+            date = "0" + date;
+        }
+        if (hour < 10) {
+            hour = "0" + hour;
+        }
+        if (minutes < 10) {
+            minutes = "0" + minutes;
+        }
+        if (seconds < 10) {
+            seconds = "0" + seconds;
+        }
+        now_time = year + "-" + month + "-" + date + " " + hour + ":" + minutes + ":" + seconds;
+        return now_time;
+    }
+
+    function run() {
+
+        var now_time = Time();
+        //var newDate = year+"年"+month+"月"+date+"日"+week+hour+":"+minutes+":"+seconds;
+        document.getElementById("show").innerHTML = now_time;
+
+        // 显示飞行数据（速度和高度）
+        if (vm.start==true) {
+            var speed = (Math.random() + 4).toFixed(2) + "km/s";
+            var height = (Math.random() + 12).toFixed(2) + "m";
+
+            // document.getElementById("speed").innerHTML = speed;
+            // document.getElementById("height").innerHTML = height;
+            var settings = {
+                "url": "http://"+myip+":80/flyData/",
+                "method": "POST",
+                "timeout": 0,
+                "headers": {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                "data": {
+                    "thisTime": now_time,
+                    "speed": speed,
+                    "height": height,
+                }
+            };
+
+            $.ajax(settings).done(function (response) {
+                // console.log(response);
+            });
+
+            if (vm.value == '2'){
+                vm.uvaNum = '102号无人机';
+            }else if (vm.value == '1'){
+                vm.uvaNum = '101号无人机';
+            }
+
+        } else {
+            // document.getElementById("speed").innerHTML = "--------";
+            // document.getElementById("height").innerHTML = "--------";
+            vm.uvaNum = '-------';
+            vm.inspNum = '-------';
+        }
+
+        setTimeout('run()', 1000);
+
+    }
+
+
+    // ------------------------------------------------------------------------------------------------
+    var vm = new Vue({
+        el: "#data_page",
+        data() {
+            return {
+                start: false,
+                inspNum: "-------", //巡检编号
+                uvaNum: "-------", // 无人机编号
+                startTime:"",
+                endTime:"",
+                longitude: "",
+                latitude: "",
+                options: [{
+                    value: "-------",
+                    labelop: '请选择巡检路线'
+                }, {
+                    value: "1",
+                    labelop: '苑新线'
+                }, {
+                    value: "2",
+                    labelop: '苑通线'
+                }],
+                value: "-------", // 路线编号
+                ax1: ax,
+                ay1: ay,
+                az1: az,
+                wx1: wx,
+                wy1: wy,
+                wz1: wz,
+                R: Roll,
+                Y: Yaw,
+                P: Pitch,
+            };
+        },
+
+        methods: {
+
+            // 退出登录
+            goBack() {
+                window.location.href = "Login.html";
+            },
+
+            // 打开报警弹窗
+            open() {
+                if (vm.value !== "-------") {
+                    this.$prompt('', '请输入告警详情', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                    }).then(({value}) => {
+                        this.$options.methods.takePhoto();
+                        var settings = {
+                            "url": "http://"+myip+":80/warning/",
+                            "method": "POST",
+                            "timeout": 0,
+                            "headers": {
+                                "Content-Type": "application/x-www-form-urlencoded"
+                            },
+                            "data": {
+                                "warning": value,
+                                "warnTime": Time(),
+                                "inspId": vm.inspNum,
+
+                            }
+                        };
+                        $.ajax(settings).done(function (response) {
+                            console.log(response);
+                        })
+                        this.$message({
+                            type: 'success',
+                            message: '提交成功'
+                        });
+                    }).catch(() => {
+                        this.$message({
+                            type: 'info',
+                            message: '取消输入'
+                        });
+                    });
+                }
+
+            },
+
+            // 打开报表页面
+            openTables() {
+                window.location.href = "Tables.html";
+            },
+
+            //获得video摄像头区域
+
+            getMedia() {
+                if (vm.value !== "-------"){
+                    let video = document.getElementById("video");
+                    let constraints = {
+                        video: {
+                            width: 440,
+                            height: 590,
+                            facingMode:"environment",
+                            //facingMode: "user",
+                        },
+                        audio: false,
+                    };
+                    /*
+                    这里介绍新的方法:H5新媒体接口 navigator.mediaDevices.getUserMedia()
+                    这个方法会提示用户是否允许媒体输入,(媒体输入主要包括相机,视频采集设备,屏幕共享服务,麦克风,A/D转换器等)
+                    返回的是一个Promise对象。
+                    如果用户同意使用权限,则会将 MediaStream对象作为resolve()的参数传给then()
+                    如果用户拒绝使用权限,或者请求的媒体资源不可用,则会将 PermissionDeniedError作为reject()的参数传给catch()
+                    */
+                    let promise = navigator.mediaDevices.getUserMedia(constraints);
+                    console.log(promise);
+                    promise.then(function (MediaStream) {
+                        video.srcObject = MediaStream;
+                            video.play();
+                            vm.start = true;
+                            vm.startTime = Time();
+                            console.log(vm.startTime);
+                    }).catch(function (PermissionDeniedError) {
+                        console.log(PermissionDeniedError);
+                    })
+                }
+            },
+
+            stopMedia(){
+                if (vm.value !== "-------"){
+                    let video = document.getElementById("video");
+                    let constraints = {
+                        video: {width: 440, height: 580},
+                        audio: false
+                    };
+                    let promise = navigator.mediaDevices.getUserMedia(constraints);
+                    promise.then(function (MediaStream) {
+                        video.srcObject = MediaStream;
+                        video.pause();
+                        vm.endTime = Time();
+                        console.log(vm.endTime);
+                        vm.start = false;
+                        console.log(vm.start);
+                    }).catch(function (PermissionDeniedError) {
+                        console.log(PermissionDeniedError);
+                    })
+                }
+            },
+
+            takePhoto() {
+                if (vm.value !== "-------"){
+                    //获得Canvas对象
+                    let canvas = document.getElementById("canvas");
+                    let ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, 440, 580);
+                    var image = canvas.toDataURL();
+
+                    var settings = {
+                        "url": "http://"+myip+"/catchimage/",
+                        "method": "POST",
+                        "timeout": 0,
+                        "headers": {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        "data": {
+                            "inspId": vm.inspNum,
+                            "picTime": Time(),
+                            "image": image,
+                        }
+                    };
+
+                    $.ajax(settings).done(function (response) {
+                        console.log(response);
+                    });
+                }
+            },
+
+            clearCanvas(){
+                if (vm.value !== "-------"){
+                    var c = document.getElementById("canvas");
+                    var ctx = c.getContext('2d');
+                    ctx.clearRect(0,0,c.width,c.height);
+                }
+            },
+
+            selectInsp(){
+                if (vm.value !== "-------"){
+                    var settings = {
+                        "url": "http://"+myip+":80/selectInsp/",
+                        "method": "POST",
+                        "timeout": 0,
+                        "headers": {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        "data": {
+                            "value": vm.value,
+                            "startTime":vm.startTime,
+                            "endTime": vm.endTime,
+                        }
+                    };
+                    $.ajax(settings).done(function (response) {
+                        console.log(response);
+                        console.log(vm.value);
+                        if (vm.value !== '-------' && (response.data).length === 0){
+                            vm.inspNum = '1';
+                        }else{
+                            vm.inspNum = (response.data)[0].INSP_ID+1;
+                            console.log("数据库里的inspID："+(response.data)[0].INSP_ID);
+                        }
+                        vm.start = true;
+                        console.log("inspNum:"+vm.inspNum);
+                        console.log("start:"+vm.start);
+                    });
+                }
+            },
+
+            // 获取巡检记录
+            insertInsp() {
+                if (vm.value !== "-------"){
+                    var settings = {
+                        "url": "http://"+myip+":80/insertInsp/",
+                        "method": "POST",
+                        "timeout": 0,
+                        "headers": {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        "data": {
+                            "value": vm.value,
+                            "startTime":vm.startTime,
+                            "endTime": Time(),
+                            "inspNum": vm.inspNum,
+                        }
+                    };
+
+                    $.ajax(settings).done(function (response) {
+                        console.log(response);
+                        // console.log(vm.value);
+                        // if (vm.value !== '-------' && (response.data).length === 0){
+                        //     vm.inspNum = '1';
+                        // }else{
+                        //     vm.inspNum = (response.data)[0].INSP_ID+1;
+                        //     console.log("数据库里的inspID："+(response.data)[0].INSP_ID);
+                        // }
+                        // vm.start = true;
+                        // console.log("inspNum:"+vm.inspNum);
+                        // console.log("start:"+vm.start);
+
+
+                        // var j = 0;
+                        // for (var i = 0; i < (response.uvaNum).length; i++) {
+                        //     if ((response.uvaNum)[i].TRACE_ID === vm.value) {
+                        //         j = i;
+                        //         break;
+                        //     }
+                        // }
+                        // vm.uvaNum = (response.uvaNum)[j].UVA_NAME;
+                        // if (vm.start === false) {
+                        //     vm.uvaNum = '-------';
+                        //     vm.inspNum = '-------';
+                        // }
+                        // console.log(vm.startTime);
+                        // console.log(vm.endTime);
+                    });
+                }
+            },
+
+
+        }
+    })
+
+    // 使用for循环遍历定义options
+    function getOption() {
+
+        $.ajax({
+            url: "http://"+myip+":80/getdb/",
+            method: "POST",
+            timeout: 0,
+        }).done(function (response) {
+            for (var i = 0; i < response.length; i++) {
+                vm.options[i + 1].labelop = response[i].TRACE_ADR;
+                vm.options[i + 1].value = response[i].TRACE_ID;
+            }
+        });
+    }
+
+    function updateData(){
+        vm.ax1 = ax;
+        vm.az1 = az;
+        vm.ay1 = ay;
+        vm.wx1 = wx;
+        vm.wy1 = wy;
+        vm.wz1 = wz;
+        vm.R = Roll;
+        vm.P = Pitch;
+        vm.Y = Yaw;
+
+        setTimeout('updateData()', 1000);
+
+    }
+
+    run();
+    getOption();
+    updateData();
+
+
+</script>
+</body>
+</html>

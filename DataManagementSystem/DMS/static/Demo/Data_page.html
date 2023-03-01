@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>视频实时监控页面</title>
+    <script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
+    <script src="../js/vue.js" type="text/javascript"></script>
+    <!-- 引入样式 -->
+    <link href="https://unpkg.com/element-ui/lib/theme-chalk/index.css" rel="stylesheet">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+</head>
+<body @onload="run2()">
+<div id="data_page">
+
+<el-container style="height: 673px; border: 1px solid #eee">
+
+<!--    视频直播窗口-->
+    <el-container>
+        <el-main>
+            <div>视频直播窗口</div>
+        </el-main>
+
+<!--    线路和无人机编号获取-->
+        <el-header style="text-align: left; font-size: 17px">
+            <div>巡检路线：{{value}}  巡检无人机编号：{{uvaNum}}</div>
+        </el-header>
+    </el-container>
+
+<!--    飞行数据的显示-->
+    <el-aside width="300px" style="background-color: rgb(238, 241, 246)">
+        <el-container>
+            <el-header style="height: 300px">
+<!--                时间动态显示-->
+                <div id = "show" style="font-weight: bold; margin-left: 10%"></div>
+                <span>飞行速度：</span>
+                <span id="speed"></span><br/>
+                <span>飞行高度：</span>
+                <span id="height"></span>
+                <div>经度：{{longitude}}</div>
+                <div>纬度：{{latitude}}</div>
+            </el-header>
+
+            <el-main>
+                <br/>
+                <el-select v-model="value" style="margin-left: 8%" placeholder="请选择其他路段" @input="getRoad()">
+                    <el-option
+                            v-for="item in options"
+                            :key="item.value"
+                            :label="item.labelop"
+                            :value="item.value">
+                    </el-option>
+                </el-select><br/><br/>
+                <el-button plain style="margin-left: 30%">路段拍照</el-button><br/><br/>
+                <el-button plain style="margin-left: 30%" @click="openTables()">查看报表</el-button><br/><br/>
+                <el-button type="danger" plain style="margin-left: 30%" @click="open()">报告预警</el-button><br/><br/>
+                <el-button type="info" style="margin-left: 34%" size="mini" @click="goBack()">退出登录</el-button>
+
+            </el-main>
+        </el-container>
+    </el-aside>
+
+</el-container>
+
+</div>
+
+<style>
+    .el-header {
+        background-color: #B3C0D1;
+        color: #333;
+        line-height: 60px;
+    }
+
+    .el-aside {
+        color: #333;
+    }
+</style>
+
+<script>
+    // 时间实时显示
+    // function run(){
+    //     var time = new Date();//获取系统当前时间
+    //     var year = time.getFullYear();
+    //     var month = time.getMonth()+1;
+    //     var date= time.getDate();//系统时间月份中的日
+    //     var hour = time.getHours();
+    //     var minutes = time.getMinutes();
+    //     var seconds = time.getSeconds();
+    //     var speed = (Math.random() + 4).toFixed(2);
+    //     var height = (Math.random() + 12).toFixed(2);
+    //
+    //     // 如果数字小于10，在前面加0
+    //     if(month<10){
+    //         month = "0"+month;
+    //     }
+    //     if(date<10){
+    //         date = "0"+date;
+    //     }
+    //     if(hour<10){
+    //         hour = "0"+hour;
+    //     }
+    //     if(minutes<10){
+    //         minutes = "0"+minutes;
+    //     }
+    //     if(seconds<10){
+    //         seconds = "0"+seconds;
+    //     }
+    //     now_time = year+"-"+month+"-"+date+" "+hour+":"+minutes+":"+seconds;
+    //     console.log(now_time);
+    //     //var newDate = year+"年"+month+"月"+date+"日"+week+hour+":"+minutes+":"+seconds;
+    //     document.getElementById("show").innerHTML = year+"年"+month+"月"+date+"日"+" "+hour+":"+minutes+":"+seconds;
+    //     if (vm.value != '-------'){
+    //         document.getElementById("speed").innerHTML = speed;
+    //         document.getElementById("height").innerHTML = height;
+    //     }
+    //     setTimeout('run()',1000);
+    // }
+
+    // ------------------------------------------------------------------------------------------------
+    var vm = new Vue({
+        el:"#data_page",
+        data(){
+            var time = new Date()
+            return{
+                year: time.getFullYear(),
+                month: time.getMonth()+1,
+                date: time.getDate(),//系统时间月份中的日
+                hour: time.getHours(),
+                minutes: time.getMinutes(),
+                seconds: time.getSeconds(),
+                //获取系统当前时间
+                uvaNum: "",
+                speed: "",
+                height: "",
+                now_time: "",
+                longitude:"",
+                latitude:"",
+                options: [{
+                    value: '-------',
+                    labelop: "请选择路段"
+                },{
+                    value: '一号路段',
+                    labelop: "一号路段"
+                }, {
+                    value: '二号路段',
+                    labelop: '二号路段'
+                }],
+                value: "-------",
+
+            };
+        },
+
+        methods:{
+            // 退出登录
+            goBack(){
+                window.location.href="Login.html";
+            },
+
+            // 打开报警弹窗
+            open() {
+
+                this.$prompt('', '请输入告警详情', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                }).then(({ value }) => {
+                    var settings = {
+                        "url": "http://192.168.0.110:80/warning/",
+                        "method": "POST",
+                        "timeout": 0,
+                        "headers": {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        "data": {
+                            "warning": value,
+                            "warningTime": vm.now_time,
+                        }
+                    };
+                    $.ajax(settings).done(function (response) {
+                        console.log(response);
+                    })
+                    this.$message({
+                        type: 'success',
+                        message: '提交成功'
+                    });
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '取消输入'
+                    });
+                });
+            },
+
+            // 打开报表页面
+            openTables(){
+                window.location.href="Tables.html";
+            },
+
+            // 获取当前选择的路段名
+            getRoad(){
+                var settings = {
+                    "url": "http://192.168.0.110:80/roadSelect/",
+                    "method": "POST",
+                    "timeout": 0,
+                    "headers": {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    "data": {
+                        "value": vm.value
+                    }
+                };
+
+                $.ajax(settings).done(function (response) {
+                    console.log(response);
+                });
+            },
+
+            // 时间的实时动态更新，以及随机产生飞行速度和高度数据
+            run2(){
+                if(vm.month<10){
+                    vm.month = "0"+vm.month;
+                }
+                if(vm.date<10){
+                    vm.date = "0"+vm.date;
+                }
+                if(vm.hour<10){
+                    vm.hour = "0"+vm.hour;
+                }
+                if(vm.minutes<10){
+                    vm.minutes = "0"+vm.minutes;
+                }
+                if(vm.seconds<10){
+                    vm.seconds = "0"+vm.seconds;
+                }
+                vm.now_time = vm.year+"-"+vm.month+"-"+vm.date+" "+vm.hour+":"+vm.minutes+":"+vm.seconds
+                console.log(vm.now_time);
+                vm.speed = (Math.random() + 4).toFixed(2);
+                vm.height = (Math.random() + 12).toFixed(2);
+                //var newDate = year+"年"+month+"月"+date+"日"+week+hour+":"+minutes+":"+seconds;
+                document.getElementById("show").innerHTML = vm.year+"年"+vm.month+"月"+vm.date+"日"+" "
+                    +vm.hour+":"+vm.minutes+":"+vm.seconds;
+                if (vm.value != '-------'){
+                    document.getElementById("speed").innerHTML = vm.speed;
+                    document.getElementById("height").innerHTML = vm.height;
+                }
+                setTimeout('this.run2()',1000);
+            }
+        }
+    })
+    // run();
+
+</script>
+</body>
+</html>

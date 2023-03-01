@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport"
+			content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+		<title></title>
+	</head>
+	<body>
+		<button type="button" onclick="onClickGet2()">采集蓝牙</button>
+	</body>
+	<script type="text/javascript">
+		async function onClickGet2() {
+			let device = await navigator.bluetooth.requestDevice({
+				filters: [{
+					namePrefix: 'WT901BLE68', //陀螺仪
+				}, {
+					namePrefix: 'GR-94103', //电子尺
+				}],
+				// acceptAllDevices: true,
+				optionalServices: ["0000ffe5-0000-1000-8000-00805f9a34fb"]
+			});
+			console.log(device);
+
+			let server = await device.gatt.connect();
+			let service = await server.getPrimaryService("0000ffe5-0000-1000-8000-00805f9a34fb");
+			let characteristic = await service.getCharacteristic("0000ffe4-0000-1000-8000-00805f9a34fb");
+
+			characteristic.addEventListener(
+				'characteristicvaluechanged', e => {
+					console.log(e.target.value);
+				}
+			);
+
+			characteristic.startNotifications()
+				.then(function(data) {
+					console.log("开始接受数据");
+				});
+
+			// await characteristic.writeValue(
+			// 	new Uint8Array([50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60])
+			// );
+		}
+	</script>
+</html>

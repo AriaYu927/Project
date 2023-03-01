@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>登录页面</title>
+    <script type="text/javascript" src="js/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="js/vue.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="js/url.js"></script>
+        <style type="text/css">
+            body {
+                background-image: url("image/back1.jpg");
+                background-repeat: no-repeat;
+                background-size: cover;
+            }
+        </style>
+
+</head>
+<body>
+<br/><br/><br/><br/><br/><br/>
+
+    <div style="border: rgba(200,200,200,1) solid 1px;border-radius: 30px;
+         margin-top:5%;width: 400px;height: 260px;margin-left: 34%;background-color: rgba(210,210,210,0.9)">
+
+        <div id="login" style="width: 350px" >
+            <h3 style="margin-left: 45%;">用户登录</h3>
+            <el-form :model="ruleForm" class="demo-ruleForm" label-width="100px" ref="ruleForm">
+                <el-form-item label="用户名" prop="name">
+                    <el-input v-model="ruleForm.name"></el-input>
+                </el-form-item>
+                <el-form-item label="密码" prop="password">
+                    <el-input autocomplete="off" type="password" v-model="ruleForm.password"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button @click="submitForm('ruleForm')" type="primary"
+                               style="background-color: #fff; border: #fff;color: #16131c">登录</el-button>
+                    <a href="Register.html">没有用户？去注册</a>
+                </el-form-item>
+
+            </el-form>
+        </div>
+    </div>
+
+<script>
+    var vm = new Vue({
+        el: "#login",
+        data() {
+            return {
+                ruleForm: {
+                    name: '',
+                    password: '',
+                },
+            };
+        },
+        methods: {
+            submitForm(formName) {
+                var settings = {
+                    "url": "http://"+ myip + ":80/login/",
+                    "method": "POST",
+                    "timeout": 0,
+                    "headers": {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    "data": {
+                        "name": vm.ruleForm.name,
+                        "password": vm.ruleForm.password
+                    }
+                };
+
+                $.ajax(settings).done(function (response) {
+                    console.log(response);
+                    if (response == 1) {
+                        window.location.href = "page.html"
+                    }else{
+                        alert("用户名或密码错误")
+                    }
+                });
+                // alert('submit!');
+            },
+        }
+    })
+</script>
+</body>
+</html>
